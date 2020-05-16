@@ -1,0 +1,9 @@
+**/.idea/*
+**/container_data/*
+
+# Package Files #
+*.jar
+*.zip
+*.tar.gz
+*.rar
+

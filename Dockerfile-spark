@@ -1,0 +1,20 @@
+FROM kolt-hive-s3:$HIVE_VERSION-$HADOOP_VERSION
+
+ARG SPARK_VERSION
+
+RUN wget https://archive.apache.org/dist/spark/spark-$SPARK_VERSION/spark-$SPARK_VERSION-bin-hadoop2.7.tgz
+RUN tar xf spark-$SPARK_VERSION-bin-hadoop2.7.tgz
+RUN mv spark-$SPARK_VERSION-bin-hadoop2.7 /opt
+RUN ln -s /opt/spark-$SPARK_VERSION-bin-hadoop2.7 /opt/spark
+RUN rm spark-$SPARK_VERSION-bin-hadoop2.7.tgz
+ENV SPARK_HOME=/opt/spark-$SPARK_VERSION-bin-hadoop2.7
+ENV SPARK_CONF_DIR=$SPARK_HOME/conf
+ENV PATH $PATH:$SPARK_HOME/bin
+
+
+RUN ln -s $HADOOP_HOME/share/hadoop/tools/lib/aws-java-sdk-1.7.4.jar $SPARK_HOME/jars/.
+RUN ln -s $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aws-2.7.3.jar $SPARK_HOME/jars/.
+
+# Configure
+ADD conf/hive-site.xml $SPARK_CONF_DIR/
+

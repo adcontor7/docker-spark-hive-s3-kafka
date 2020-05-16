@@ -1,0 +1,44 @@
+<configuration>
+   <property>
+      <name>javax.jdo.option.ConnectionURL</name>
+      <value>jdbc:mysql://kolt-mysql-metastore:3306/hive_metastore?createDatabaseIfNotExist=true</value>
+      <description>metadata is stored in a MySQL server</description>
+   </property>
+   <property>
+      <name>javax.jdo.option.ConnectionDriverName</name>
+      <value>com.mysql.jdbc.Driver</value>
+      <description>MySQL JDBC driver class</description>
+   </property>
+   <property>
+      <name>javax.jdo.option.ConnectionUserName</name>
+      <value>root</value>
+      <description>user name for connecting to mysql server</description>
+   </property>
+   <property>
+      <name>javax.jdo.option.ConnectionPassword</name>
+      <value>mysecret</value>
+      <description>password for connecting to mysql server</description>
+   </property>
+   <property>
+     <name>hive.metastore.warehouse.dir</name>
+     <value>/shared_data/hive/warehouse</value>
+     <description>location of default database for the warehouse</description>
+   </property>
+   <property>
+      <name>hive.exec.stagingdir</name>
+      <value>/tmp/hive/hive-staging</value>
+   </property>
+   <property>
+      <name>hive.exec.dynamic.partition.mode</name>
+      <value>nonstrict</value>
+      <description>Dynamic partition mode</description>
+   </property>
+   <property>
+      <name>hive.metastore.try.direct.sql</name>
+      <value>true</value>
+   </property>
+   <property>
+      <name>spark.sql.catalogImplementation</name>
+      <value>hive</value>
+   </property>
+</configuration>

@@ -1,0 +1,46 @@
+FROM kolt-java8:latest
+
+ARG HADOOP_VERSION
+ARG HIVE_VERSION
+
+# -- Install Hadoop
+RUN wget https://archive.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
+RUN tar xf hadoop-$HADOOP_VERSION.tar.gz
+RUN mv hadoop-$HADOOP_VERSION /opt
+RUN ln -s /opt/hadoop-$HADOOP_VERSION /opt/hadoop
+RUN rm hadoop-$HADOOP_VERSION.tar.gz
+ENV HADOOP_HOME /opt/hadoop
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+ENV HADOOP_CONF_DIR=$HADOOP_HOME/conf
+ENV PATH $PATH:$HADOOP_HOME/bin
+
+# -- install Hive
+RUN wget https://archive.apache.org/dist/hive/hive-$HIVE_VERSION/apache-hive-$HIVE_VERSION-bin.tar.gz
+RUN tar xf apache-hive-$HIVE_VERSION-bin.tar.gz
+RUN mv apache-hive-$HIVE_VERSION-bin /opt
+RUN ln -s /opt/apache-hive-$HIVE_VERSION-bin /opt/hive
+RUN rm apache-hive-$HIVE_VERSION-bin.tar.gz
+ENV HIVE_HOME=/opt/hive
+ENV HIVE_CONF_DIR=$HIVE_HOME/conf
+ENV PATH $PATH:$HIVE_HOME/bin
+
+RUN ln -s $HADOOP_HOME/share/hadoop/tools/lib/aws-java-sdk-1.7.4.jar $HIVE_HOME/lib/.
+RUN ln -s $HADOOP_HOME/share/hadoop/tools/lib/hadoop-aws-2.7.3.jar $HIVE_HOME/lib/.
+
+# FILESYSTEM ROOT
+RUN mkdir -p /shared_data
+
+# -- install MySQL client jar for Hive
+
+RUN wget https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-java-5.1.45.tar.gz
+RUN tar xf mysql-connector-java-5.1.45.tar.gz
+RUN mv mysql-connector-java-5.1.45/mysql-connector-java-5.1.45-bin.jar /opt/hive/lib
+RUN rm -rf mysql-connector-java-5.1.45
+
+# Configure
+ADD conf/hive-site.xml $HIVE_CONF_DIR/
+ADD conf/s3-credentials.sh /
+
+ENTRYPOINT ["/s3-credentials.sh"]
+
+

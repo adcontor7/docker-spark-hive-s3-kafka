@@ -1,0 +1,143 @@
+version: "2.2"
+#version: "3.7" #SWARM MODE
+
+services:
+
+  portainer:
+    image: portainer/portainer
+    container_name: shks3-portainer
+    ports:
+      - "9500:9000"
+    command: -H unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+
+  s3server:
+    image: scality/s3server
+    container_name: shks3-s3server
+    domainname: shks3
+    networks:
+      - shks3
+    environment:
+      SCALITY_ACCESS_KEY_ID: newAccessKey
+      SCALITY_SECRET_ACCESS_KEY: newSecretKey
+    ports:
+      - 8000:8000
+
+    #NOT COMPATIBLE IN SWARM MODE 3.x
+    cpu_count: 1
+    cpus: 0.5
+    mem_limit: 1000000000
+    memswap_limit: 1000000000
+    mem_reservation: 500m
+    privileged: true
+
+
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: shks3-zookeeper
+    container_name: shks3-zookeeper
+    domainname: shks3
+    networks:
+      - shks3
+    ports:
+      - 2181:2181
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      
+
+  # Productor de kafka
+  #docker-compose exec kafka kafka-console-producer --broker-list localhost:9092 --topic topic1
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    hostname: shks3-kafka
+    container_name: shks3-kafka
+    domainname: shks3
+    networks:
+      - shks3
+    ports:
+      - 9092:9092
+    expose:
+      - 9092
+      - 9093
+    depends_on:
+      - zookeeper
+    volumes:
+      - kafka:/var/lib/kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://shks3-kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_ZOOKEEPER_CONNECT: shks3-zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+  mysql-metastore:
+    image: shks3-mysql-metastore:5.6.38
+    container_name: shks3-mysql-metastore
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysecret
+    ports:
+      - "13306:3306"
+    volumes:
+      - ./container_data/mysql-metastore:/var/lib/mysql
+
+
+
+  hive-s3:
+    image: shks3-hive-s3:latest
+    container_name: shks3-hive-s3
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./container_data/hive/warehouse:/shared_data/hive/warehouse
+    links:
+      - "mysql-metastore:mysql-metastore"
+      - "s3server:s3server"
+
+
+  spark:
+    image: shks3-spark:2.4.0
+    container_name: shks3-spark
+    ports:
+      - "14040:4040"
+      - "18080:8080"
+    volumes:
+      - ./container_data/spark/warehouse:/shared_data/hive/warehouse
+    environment:
+      S3_ACCESS_KEY_ID: newAccessKey
+      S3_SECRET_ACCESS_KEY: newSecretKey
+    links:
+      - "mysql-metastore:mysql-metastore"
+      - "kafka:kafka"
+      - "s3server:s3server"
+
+    
+      
+volumes:
+  kafka:
+  zookeeper:
+  portainer_data:
+  
+  
+networks:
+  shks3:
+    external:
+      name: shks3
+      
+      
+#docker network create \
+#  --driver=bridge \
+#  --subnet=172.30.0.0/16 \
+#  --ip-range=172.30.5.0/24 \
+#  --gateway=172.30.5.254 \
+#  shks3
+      
